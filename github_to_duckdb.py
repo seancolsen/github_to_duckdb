@@ -48,6 +48,7 @@ def get_migration_id():
         return args.resumed_migration_id
 
     print("Starting migration.")
+    # https://docs.github.com/en/rest/migrations/orgs?apiVersion=2022-11-28#start-an-organization-migration
     response = requests.post(
         url=f"https://api.github.com/orgs/{org}/migrations",
         headers=headers,
