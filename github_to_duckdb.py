@@ -18,6 +18,13 @@ description = "Export data from a GitHub repository to a DuckDB database."
 parser = argparse.ArgumentParser(description=description)
 parser.add_argument("repository", help='The user and repository name, e.g. "user/repo"')
 parser.add_argument("db_file", help='The path to the database file, e.g. "repo.duckdb"')
+parser.add_argument(
+    "--resume",
+    help="Resume an already-started migration using its numerical ID",
+    type=int,
+    metavar="ID",
+    dest="resumed_migration_id",
+)
 args = parser.parse_args()
 org, repo = args.repository.split("/")
 
@@ -27,20 +34,28 @@ headers = {
     "X-GitHub-Api-Version": "2022-11-28",
 }
 
-print("Starting migration.")
-response = requests.post(
-    url=f"https://api.github.com/orgs/{org}/migrations",
-    headers=headers,
-    json={
-        "repositories": [f"{org}/{repo}"],
-        "exclude_git_data": True,
-        "exclude_attachments": True,
-        "exclude_releases": True,
-    },
-)
-response.raise_for_status()
-migration_id = response.json()["id"]
-print(f"Migration started with id {migration_id}.")
+
+def get_migration_id():
+    if args.resumed_migration_id:
+        return args.resumed_migration_id
+
+    print("Starting migration.")
+    response = requests.post(
+        url=f"https://api.github.com/orgs/{org}/migrations",
+        headers=headers,
+        json={
+            "repositories": [f"{org}/{repo}"],
+            "exclude_git_data": True,
+            "exclude_attachments": True,
+            "exclude_releases": True,
+        },
+    )
+    response.raise_for_status()
+    print(f"Migration started with id {migration_id}.")
+    return response.json()["id"]
+
+
+migration_id = get_migration_id()
 
 archive_url = None
 while True:
