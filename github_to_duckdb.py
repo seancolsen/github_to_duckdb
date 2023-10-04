@@ -25,6 +25,14 @@ parser.add_argument(
     metavar="ID",
     dest="resumed_migration_id",
 )
+parser.add_argument(
+    "-a",
+    "--archive-dir",
+    help="Path to a directory where the archive data will be saved. If omitted, a temporary directory will be used",
+    type=str,
+    metavar="DIR",
+    dest="archive_dir",
+)
 args = parser.parse_args()
 org, repo = args.repository.split("/")
 
@@ -73,10 +81,11 @@ while True:
         exit(1)
     time.sleep(5)
 
-print("Downloading archive.")
-response = requests.get(url=archive_url, headers=headers, stream=True)
-response.raise_for_status()
-with tempfile.TemporaryDirectory() as archive_dir:
+
+def download(archive_dir):
+    print("Downloading archive.")
+    response = requests.get(url=archive_url, headers=headers, stream=True)
+    response.raise_for_status()
     with tarfile.open(fileobj=response.raw, mode="r:gz") as tar:
         tar.extractall(path=archive_dir)
     files = os.listdir(archive_dir)
@@ -93,3 +102,10 @@ with tempfile.TemporaryDirectory() as archive_dir:
         """
         con.sql(sql)
     con.close()
+
+
+if args.archive_dir:
+    download(args.archive_dir)
+else:
+    with tempfile.TemporaryDirectory() as archive_dir:
+        download(archive_dir)
